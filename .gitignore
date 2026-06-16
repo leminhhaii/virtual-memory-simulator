@@ -1,0 +1,26 @@
+# Object files
+obj/
+*.o
+
+# Executables
+vmsim
+vmsim.exe
+*.exe
+
+# Temp and Log files
+*.log
+tests/temp_*
+tests/traces/temp_*
+tests/traces/bench_*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+plan/
+
+.agents/
+
+tests/ 
+
+docs/
