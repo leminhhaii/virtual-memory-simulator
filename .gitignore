@@ -24,3 +24,7 @@ plan/
 tests/ 
 
 docs/
+
+*.pyc
+__pycache__/
+

@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Virtual Memory Simulator Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header glass-card">
+      <div class="logo">
+        <i class="fa-solid fa-microchip accent-glow"></i>
+        <h1>VMSim Web Dashboard</h1>
+      </div>
+      <div class="status-indicator">
+        <span class="status-dot green"></span>
+        <span id="backend-status">Connected to Simulator</span>
+      </div>
+    </header>
+
+    <!-- Main Content Grid -->
+    <div class="main-grid">
+      <!-- Left Panel: Configurations & Controls -->
+      <section class="left-panel">
+        <!-- Configuration Card -->
+        <div class="glass-card panel-card">
+          <h2><i class="fa-solid fa-sliders"></i> Simulation Settings</h2>
+          <form id="config-form">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="pages-input">Virtual Pages</label>
+                <input type="number" id="pages-input" value="16" min="1" max="1024" required>
+              </div>
+              <div class="form-group">
+                <label for="frames-input">Physical Frames</label>
+                <input type="number" id="frames-input" value="4" min="1" max="512" required>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="pagesize-input">Page Size (Bytes)</label>
+                <select id="pagesize-input">
+                  <option value="256">256</option>
+                  <option value="512">512</option>
+                  <option value="1024">1024</option>
+                  <option value="2048">2048</option>
+                  <option value="4096" selected>4096</option>
+                  <option value="8192">8192</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="tlbsize-input">TLB Size</label>
+                <input type="number" id="tlbsize-input" value="4" min="0" max="64" required>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="algorithm-input">Replacement Algorithm</label>
+              <select id="algorithm-input">
+                <option value="fifo" selected>FIFO (First-In, First-Out)</option>
+                <option value="lru">LRU (Least Recently Used)</option>
+                <option value="clock">Clock (Second Chance)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="trace-source">Trace Source</label>
+              <select id="trace-source">
+                <option value="predefined" selected>Predefined Trace Files</option>
+                <option value="custom">Custom Address Inputs</option>
+              </select>
+            </div>
+
+            <div class="form-group" id="predefined-trace-group">
+              <label for="trace-file-select">Select Trace File</label>
+              <select id="trace-file-select">
+                <!-- Populated dynamically -->
+              </select>
+            </div>
+
+            <div class="form-group hidden" id="custom-trace-group">
+              <label for="custom-trace-input">Custom Trace (Format: R/W &lt;hex_addr&gt;)</label>
+              <textarea id="custom-trace-input" rows="5" placeholder="R 0x1000&#10;W 0x1004&#10;R 0x2000&#10;W 0x3000"></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-primary" id="btn-load-sim">
+              <i class="fa-solid fa-arrow-rotate-right"></i> Initialize & Run
+            </button>
+          </form>
+        </div>
+
+        <!-- Player Controls Card -->
+        <div class="glass-card panel-card">
+          <h2><i class="fa-solid fa-gamepad"></i> Playback Controls</h2>
+          <div class="play-controls">
+            <button class="btn btn-ctrl" id="btn-prev" disabled title="Previous Step">
+              <i class="fa-solid fa-backward-step"></i>
+            </button>
+            <button class="btn btn-ctrl" id="btn-next" disabled title="Next Step">
+              <i class="fa-solid fa-forward-step"></i>
+            </button>
+            <button class="btn btn-ctrl" id="btn-autoplay" disabled title="Autoplay / Pause">
+              <i class="fa-solid fa-play"></i>
+            </button>
+            <button class="btn btn-ctrl" id="btn-runall" disabled title="Run to End">
+              <i class="fa-solid fa-forward-fast"></i>
+            </button>
+          </div>
+
+          <div class="slider-group">
+            <label for="speed-slider">Autoplay Speed: <span id="speed-val">1000</span>ms</label>
+            <input type="range" id="speed-slider" min="100" max="3000" step="100" value="1000">
+          </div>
+
+          <div class="step-progress-wrapper">
+            <div class="step-info">
+              <span>Step: <strong id="current-step-display">0</strong> / <strong id="total-steps-display">0</strong></span>
+            </div>
+            <div class="progress-bar-container">
+              <div class="progress-bar-fill" id="progress-bar"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Center Panel: Visualization Grids -->
+      <section class="center-panel">
+        <!-- TLB Visualizer -->
+        <div class="glass-card visualizer-card">
+          <div class="visualizer-header">
+            <h3>Translation Lookaside Buffer (TLB)</h3>
+            <span class="badge" id="tlb-badge">Enabled</span>
+          </div>
+          <div class="grid-container" id="tlb-grid">
+            <!-- Rendered via JS -->
+            <div class="empty-state">No simulation loaded</div>
+          </div>
+        </div>
+
+        <!-- Physical Frame Table (RAM) -->
+        <div class="glass-card visualizer-card">
+          <div class="visualizer-header">
+            <h3>Physical Frame Table (RAM)</h3>
+            <span class="badge purple-badge" id="clock-hand-val">Clock Hand: 0</span>
+          </div>
+          <div class="grid-container" id="frame-grid">
+            <!-- Rendered via JS -->
+            <div class="empty-state">No simulation loaded</div>
+          </div>
+        </div>
+
+        <!-- Page Table -->
+        <div class="glass-card visualizer-card">
+          <div class="visualizer-header">
+            <h3>Page Table</h3>
+          </div>
+          <div class="table-scroll-container">
+            <table class="visualizer-table">
+              <thead>
+                <tr>
+                  <th>VPN</th>
+                  <th>Present</th>
+                  <th>Frame #</th>
+                  <th>Dirty</th>
+                  <th>Referenced</th>
+                  <th>Last Used</th>
+                </tr>
+              </thead>
+              <tbody id="pagetable-body">
+                <!-- Rendered via JS -->
+                <tr>
+                  <td colspan="6" class="empty-state">No simulation loaded</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Panel: Stats, Breakdown & Logs -->
+      <section class="right-panel">
+        <!-- Stats Widgets -->
+        <div class="glass-card panel-card">
+          <h2><i class="fa-solid fa-chart-simple"></i> Live Statistics</h2>
+          <div class="stats-grid">
+            <div class="stat-box">
+              <span class="stat-label">Total Accesses</span>
+              <span class="stat-val" id="stat-accesses">0</span>
+            </div>
+            <div class="stat-box">
+              <span class="stat-label">Reads / Writes</span>
+              <span class="stat-val" id="stat-rw">0 / 0</span>
+            </div>
+          </div>
+
+          <!-- Gauges -->
+          <div class="gauges-container">
+            <div class="gauge-wrapper">
+              <span class="gauge-title">TLB Hit Rate</span>
+              <div class="radial-gauge-container">
+                <svg width="100" height="100" class="radial-svg">
+                  <circle cx="50" cy="50" r="40" class="gauge-bg"></circle>
+                  <circle cx="50" cy="50" r="40" class="gauge-fill" id="tlb-gauge-fill" stroke-dasharray="251.2" stroke-dashoffset="251.2"></circle>
+                </svg>
+                <div class="gauge-text" id="tlb-gauge-txt">0%</div>
+              </div>
+              <div class="gauge-subtitle"><span id="stat-tlb-hits">0</span> hits / <span id="stat-tlb-misses">0</span> misses</div>
+            </div>
+
+            <div class="gauge-wrapper">
+              <span class="gauge-title">Page Fault Rate</span>
+              <div class="radial-gauge-container">
+                <svg width="100" height="100" class="radial-svg">
+                  <circle cx="50" cy="50" r="40" class="gauge-bg"></circle>
+                  <circle cx="50" cy="50" r="40" class="gauge-fill orange-gauge" id="pf-gauge-fill" stroke-dasharray="251.2" stroke-dashoffset="251.2"></circle>
+                </svg>
+                <div class="gauge-text" id="pf-gauge-txt">0%</div>
+              </div>
+              <div class="gauge-subtitle"><span id="stat-page-faults">0</span> faults / <span id="stat-evictions">0</span> evicts</div>
+            </div>
+          </div>
+
+          <div class="simple-metric-row">
+            <span>Dirty Writebacks: <strong id="stat-dirty">0</strong></span>
+          </div>
+        </div>
+
+        <!-- Address Translation breakdown -->
+        <div class="glass-card panel-card">
+          <h2><i class="fa-solid fa-calculator"></i> Address Translation Math</h2>
+          <div class="math-breakdown" id="math-breakdown-panel">
+            <div class="empty-state">Load and run a step to see math breakdown</div>
+          </div>
+        </div>
+
+        <!-- Event Console Log -->
+        <div class="glass-card panel-card">
+          <h2><i class="fa-solid fa-terminal"></i> Step Execution Log</h2>
+          <div class="console-log" id="console-logs-container">
+            <div class="empty-state">Console idle...</div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- Error Modal/Overlay -->
+  <div id="error-overlay" class="modal-overlay hidden">
+    <div class="glass-card modal-content">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-triangle-exclamation"></i> Simulator Error</h3>
+        <button class="btn-close" id="btn-close-error">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p id="error-message-text">An error occurred while executing the simulation.</p>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
