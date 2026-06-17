@@ -63,6 +63,7 @@
               <select id="algorithm-input">
                 <option value="fifo" selected>FIFO (First-In, First-Out)</option>
                 <option value="lru">LRU (Least Recently Used)</option>
+                <option value="lfu">LFU (Least Frequently Used)</option>
                 <option value="clock">Clock (Second Chance)</option>
               </select>
             </div>
@@ -167,7 +168,7 @@
                   <th>Frame #</th>
                   <th>Dirty</th>
                   <th>Referenced</th>
-                  <th>Last Used</th>
+                  <th>Last Used / Freq</th>
                 </tr>
               </thead>
               <tbody id="pagetable-body">

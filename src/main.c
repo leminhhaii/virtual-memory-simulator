@@ -13,7 +13,7 @@
 #endif
 
 static void print_usage(const char *prog_name) {
-    fprintf(stderr, "Usage: %s --pages <count> --frames <count> --page-size <bytes> --tlb-size <count> --algorithm <fifo|lru|clock> <trace_file>\n", prog_name);
+    fprintf(stderr, "Usage: %s --pages <count> --frames <count> --page-size <bytes> --tlb-size <count> --algorithm <fifo|lru|clock|lfu> <trace_file>\n", prog_name);
 }
 
 int main(int argc, char *argv[]) {
@@ -96,8 +96,8 @@ int main(int argc, char *argv[]) {
                 return 1;
             }
             const char *algo = argv[i+1];
-            if (strcasecmp(algo, "fifo") != 0 && strcasecmp(algo, "lru") != 0 && strcasecmp(algo, "clock") != 0) {
-                fprintf(stderr, "Error: --algorithm must be fifo, lru, or clock\n");
+            if (strcasecmp(algo, "fifo") != 0 && strcasecmp(algo, "lru") != 0 && strcasecmp(algo, "clock") != 0 && strcasecmp(algo, "lfu") != 0) {
+                fprintf(stderr, "Error: --algorithm must be fifo, lru, clock, or lfu\n");
                 return 1;
             }
             strncpy(config.algorithm, algo, sizeof(config.algorithm) - 1);

@@ -11,7 +11,7 @@ CSV_OUT="results/benchmark_results.csv"
 # Write CSV header
 echo "Algorithm,Frames,TLB_Size,Trace,Total_Accesses,Total_Reads,Total_Writes,TLB_Hits,TLB_Misses,Page_Faults,Evictions,Dirty_Write_Backs,TLB_Hit_Rate,Page_Fault_Rate" > "$CSV_OUT"
 
-ALGOS=("fifo" "lru" "clock")
+ALGOS=("fifo" "lru" "clock" "lfu")
 FRAMES=(2 3 5 8)
 TLB_SIZES=(0 2 4 8)
 TRACES=("bench_seq" "bench_loc" "bench_mix" "bench_thr")

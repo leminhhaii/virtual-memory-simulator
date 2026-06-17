@@ -40,7 +40,7 @@ class VMStateReconstructor:
             
         self.page_table = [{
             "present": False, "frame_number": -1, "dirty": False, 
-            "referenced": False, "last_used_timestamp": 0
+            "referenced": False, "last_used_timestamp": 0, "access_count": 0
         } for _ in range(self.pages)]
         
         self.frame_table = [{
@@ -121,6 +121,25 @@ class VMStateReconstructor:
                         self.page_table[vpn]["referenced"] = False
                     else:
                         return curr
+                        
+        elif self.algorithm == "lfu":
+            min_access = float('inf')
+            min_load_time = float('inf')
+            victim = -1
+            for idx, frame in enumerate(self.frame_table):
+                if frame["occupied"]:
+                    vpn = frame["vpn"]
+                    access_cnt = self.page_table[vpn]["access_count"]
+                    load_time = frame["load_timestamp"]
+                    if access_cnt < min_access:
+                        min_access = access_cnt
+                        min_load_time = load_time
+                        victim = idx
+                    elif access_cnt == min_access:
+                        if load_time < min_load_time:
+                            min_load_time = load_time
+                            victim = idx
+            return victim
         return -1
 
     def access_address(self, op: str, addr: int) -> Dict[str, Any]:
@@ -180,7 +199,7 @@ class VMStateReconstructor:
                 if free_frame != -1:
                     frame_num = free_frame
                     self.frame_table[frame_num] = {"occupied": True, "vpn": vpn, "load_timestamp": self.logical_clock}
-                    pte.update({"present": True, "frame_number": frame_num, "dirty": False, "referenced": False})
+                    pte.update({"present": True, "frame_number": frame_num, "dirty": False, "referenced": False, "access_count": 0})
                     self.tlb_insert(vpn, frame_num)
                 else:
                     ram_full = True
@@ -195,10 +214,10 @@ class VMStateReconstructor:
                         self.stats["dirty_write_backs"] += 1
                         
                     self.tlb_invalidate(evicted_vpn)
-                    ev_pte.update({"present": False, "dirty": False, "referenced": False})
+                    ev_pte.update({"present": False, "dirty": False, "referenced": False, "access_count": 0})
                     
                     self.frame_table[victim] = {"occupied": True, "vpn": vpn, "load_timestamp": self.logical_clock}
-                    pte.update({"present": True, "frame_number": victim, "dirty": False, "referenced": False})
+                    pte.update({"present": True, "frame_number": victim, "dirty": False, "referenced": False, "access_count": 0})
                     self.tlb_insert(vpn, victim)
                     frame_num = victim
                     
@@ -207,6 +226,7 @@ class VMStateReconstructor:
         pte = self.page_table[vpn]
         pte["last_used_timestamp"] = self.logical_clock
         pte["referenced"] = True
+        pte["access_count"] += 1
         if op == 'W':
             pte["dirty"] = True
             

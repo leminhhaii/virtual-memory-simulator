@@ -145,6 +145,7 @@ int vm_access(SimulatorState *state, char op, uint32_t addr, int *tlb_hit, int *
                 pte->frame_number = frame_num;
                 pte->dirty = false;
                 pte->referenced = false;
+                pte->access_count = 0;
                 
                 // Insert into TLB
                 if (state->config.tlb_size > 0 && state->tlb) {
@@ -176,6 +177,7 @@ int vm_access(SimulatorState *state, char op, uint32_t addr, int *tlb_hit, int *
                 ev_pte->present = false;
                 ev_pte->dirty = false;
                 ev_pte->referenced = false;
+                ev_pte->access_count = 0;
                 
                 // Load the new page into this frame
                 frame_num = victim;
@@ -186,6 +188,7 @@ int vm_access(SimulatorState *state, char op, uint32_t addr, int *tlb_hit, int *
                 pte->frame_number = frame_num;
                 pte->dirty = false;
                 pte->referenced = false;
+                pte->access_count = 0;
                 
                 // Insert new page mapping into TLB
                 if (state->config.tlb_size > 0 && state->tlb) {
@@ -204,6 +207,7 @@ int vm_access(SimulatorState *state, char op, uint32_t addr, int *tlb_hit, int *
     PageTableEntry *pte = &state->page_table[vpn];
     pte->last_used_timestamp = state->logical_clock;
     pte->referenced = true;
+    pte->access_count++;
     if (op == 'W') {
         pte->dirty = true;
     }

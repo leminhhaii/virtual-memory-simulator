@@ -11,6 +11,7 @@ typedef struct {
     bool referenced;               /* true if accessed recently (used for Clock) */
     int frame_number;              /* index of the physical frame it maps to */
     uint32_t last_used_timestamp;  /* logical clock tick of last access (used for LRU) */
+    uint32_t access_count;         /* total access frequency count (used for LFU) */
 } PageTableEntry;
 
 /* Frame Entry: Tracks physical memory allocations */

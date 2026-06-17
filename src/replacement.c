@@ -64,6 +64,31 @@ int choose_victim_frame(SimulatorState *state) {
             }
         }
     }
+    else if (strcasecmp(state->config.algorithm, "lfu") == 0) {
+        int victim = -1;
+        uint32_t min_frequency = UINT32_MAX;
+        uint32_t min_load_timestamp = UINT32_MAX;
+        
+        for (uint32_t i = 0; i < frames_count; i++) {
+            if (state->frame_table[i].occupied) {
+                uint32_t vpn = state->frame_table[i].vpn;
+                uint32_t frequency = state->page_table[vpn].access_count;
+                uint32_t load_time = state->frame_table[i].load_timestamp;
+                
+                if (frequency < min_frequency) {
+                    min_frequency = frequency;
+                    min_load_timestamp = load_time;
+                    victim = (int)i;
+                } else if (frequency == min_frequency) {
+                    if (load_time < min_load_timestamp) {
+                        min_load_timestamp = load_time;
+                        victim = (int)i;
+                    }
+                }
+            }
+        }
+        return victim;
+    }
     
     return -1;
 }

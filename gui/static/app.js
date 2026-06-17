@@ -297,7 +297,7 @@ function renderStepState() {
   renderFrameDisplay(state.frame_table, state.clock_hand, algorithm, step);
   
   // 3. Render Page Table
-  renderPageTableDisplay(state.page_table, step.vpn);
+  renderPageTableDisplay(state.page_table, step.vpn, algorithm);
 
   // 4. Update Stats gauges and cards up to current step
   updateStatsDisplay();
@@ -400,7 +400,7 @@ function renderFrameDisplay(frameArray, clockHand, algorithm, step) {
 }
 
 // 3. Render Page Table Display
-function renderPageTableDisplay(pageTableArray, activeVpn) {
+function renderPageTableDisplay(pageTableArray, activeVpn, algorithm) {
   pageTableBody.innerHTML = "";
   if (!pageTableArray || pageTableArray.length === 0) {
     pageTableBody.innerHTML = '<tr><td colspan="6" class="empty-state">No page entries found</td></tr>';
@@ -425,13 +425,15 @@ function renderPageTableDisplay(pageTableArray, activeVpn) {
       ? '<span class="badge">1</span>' 
       : '<span class="text-muted">0</span>';
 
+    const lastColVal = algorithm === 'lfu' ? (pte.access_count || 0) : `t${pte.last_used_timestamp}`;
+
     tr.innerHTML = `
       <td style="font-weight:600; font-family:monospace;">VPN ${idx}</td>
       <td>${presentCell}</td>
       <td style="font-family:monospace;">${pte.present ? `Frame ${pte.frame_number}` : "-"}</td>
       <td>${dirtyCell}</td>
       <td>${refCell}</td>
-      <td style="font-family:monospace; color:var(--text-muted);">t${pte.last_used_timestamp}</td>
+      <td style="font-family:monospace; color:var(--text-muted);">${lastColVal}</td>
     `;
     pageTableBody.appendChild(tr);
   });
