@@ -1,4 +1,5 @@
 #!/bin/bash
+cd "$(dirname "$0")"
 echo "Starting Virtual Memory Simulator Web UI..."
 
 # Attempt to open browser in background
